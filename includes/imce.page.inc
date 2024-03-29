@@ -48,7 +48,7 @@ function imce_content($user, $scheme = NULL, $jsop = NULL) {
 
   //Before creating the content let's add main files required for imce to function properly.
   $path = backdrop_get_path('module', 'imce');
-  backdrop_add_js($path . '/js/jquery.form.js');
+  backdrop_add_library('system', 'jquery.form');
   backdrop_add_js($path . '/js/imce.js');
   backdrop_add_js($path . '/js/imce_extras.js');
   backdrop_add_css($path . '/css/imce-content.css');

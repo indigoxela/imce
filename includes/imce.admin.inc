@@ -690,8 +690,8 @@ function imce_sorted_roles() {
   if (!isset($sorted)) {
     $sorted = array();
     $roles = user_roles();
-    $profiles = $config->get('imce_profiles', array());
-    $roles_profiles = $config->get('imce_roles_profiles', array());
+    $profiles = $config->get('imce_profiles');
+    $roles_profiles = $config->get('imce_roles_profiles');
     $roles_profiles[BACKDROP_ANONYMOUS_ROLE]['weight'] = 12;
     $roles_profiles[BACKDROP_AUTHENTICATED_ROLE]['weight'] = 11;
     $schemes = array_keys(file_get_stream_wrappers(STREAM_WRAPPERS_VISIBLE));

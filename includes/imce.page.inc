@@ -128,8 +128,10 @@ function imce_upload_form($form, &$form_state, $ref) {
   $imce =& $ref['imce'];
   $form['imce'] = array(
     '#type' => 'file',
+    '#name' => 'files[]',
     '#title' => t('File'),
     '#size' => 30,
+    '#attributes' => array('multiple' => 'multiple'),
   );
   if (!empty($imce['thumbnails'])) {
     $form['thumbnails'] = array(
@@ -284,45 +286,47 @@ function imce_fileop_form_validate($form, &$form_state) {
  * Submit upload form.
  */
 function imce_upload_submit($form, &$form_state) {
-  $form_state['redirect'] = FALSE;
-  $imce =& $form_state['build_info']['args'][0]['imce'];
-  // Need to provide extension validatior, otherwise file_save_upload uses the default.
-  $validators['file_validate_extensions'] = array($imce['extensions'] === '*' ? NULL : $imce['extensions']);
-  $validators['imce_validate_all'] = array(&$imce);
-  $diruri = imce_dir_uri($imce);
+  // Multiple files support.
+  $num_files = count($_FILES['files']['name']);
+  for ($i = 0; $i < $num_files; $i++) {
+    $form_state['redirect'] = FALSE;
+    $imce =& $form_state['build_info']['args'][0]['imce'];
+    // Need to provide extension validatior,
+    // otherwise file_save_upload uses the default.
+    $validators['file_validate_extensions'] = array($imce['extensions'] === '*' ? NULL : $imce['extensions']);
+    $validators['imce_validate_all'] = array(&$imce);
+    $diruri = imce_dir_uri($imce);
+    // Save uploaded file.
+    $replace = config_get('imce.settings', 'imce_settings_replace');
+    if ($file = file_save_upload($i, $validators, $diruri, $replace)) {
+      // Core bug #54223.
+      if ($replace == FILE_EXISTS_RENAME) {
 
-  //save uploaded file.
-  $replace = config_get('imce.settings', 'imce_settings_replace');
-  if ($file = file_save_upload('imce', $validators, $diruri, $replace)) {
-
-    //core bug #54223.
-    if ($replace == FILE_EXISTS_RENAME) {
-      $name = basename($file->uri);
-      if ($name != $file->filename) {
-        $file->filename = $name;
-        backdrop_set_message(t('The file has been renamed to %filename.', array('%filename' => $file->filename)));
+        $name = basename($file->uri);
+        if ($name != $file->filename) {
+          $file->filename = $name;
+          backdrop_set_message(t('The file has been renamed to %filename.', array('%filename' => $file->filename)));
+        }
+      }
+      // Global user may not be the owner.
+      $file->uid = $imce['uid'];
+      $file->status = FILE_STATUS_PERMANENT;
+      file_save($file);
+      imce_file_register($file);
+      backdrop_set_message(t('%filename has been uploaded.', array('%filename' => $file->filename)));
+      // Update file list.
+      $img = imce_image_info($file->uri);
+      $file->width = $img ? $img['width'] : 0;
+      $file->height = $img ? $img['height'] : 0;
+      imce_add_file($file, $imce);
+      // Create thumbnails.
+      if (isset($form_state['values']['thumbnails']) && $img) {
+        imce_create_thumbnails($file->filename, $imce, $form_state['values']['thumbnails']);
       }
     }
-
-    $file->uid = $imce['uid'];//global user may not be the owner.
-    $file->status = FILE_STATUS_PERMANENT;
-    file_save($file);
-    imce_file_register($file);
-    backdrop_set_message(t('%filename has been uploaded.', array('%filename' => $file->filename)));
-
-    //update file list
-    $img = imce_image_info($file->uri);
-    $file->width = $img ? $img['width'] : 0;
-    $file->height = $img ? $img['height'] : 0;
-    imce_add_file($file, $imce);
-
-    //create thumbnails
-    if (isset($form_state['values']['thumbnails']) && $img) {
-      imce_create_thumbnails($file->filename, $imce, $form_state['values']['thumbnails']);
+    else {
+      backdrop_set_message(t('Upload failed.'), 'error');
     }
-  }
-  else {
-    backdrop_set_message(t('Upload failed.'), 'error');
   }
 }
 

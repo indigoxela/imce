@@ -107,7 +107,7 @@ function imce_theme() {
  * Support private downloads if not disabled.
  */
 function imce_file_download($uri) {
-  $serve = file_uri_scheme($uri) == 'private' && !config_get('imce_settings_disable_private') &&  file_exists($uri) && strpos(basename($uri), '.');
+  $serve = file_uri_scheme($uri) == 'private' && !config_get('imce_settings_disable_private') &&  file_exists($uri) && strpos(backdrop_basename($uri), '.');
   if ($serve) {
     return array(
       'Content-type' => file_get_mimetype($uri),
